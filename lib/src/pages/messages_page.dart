@@ -10,15 +10,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:locally/locally.dart';
 import 'package:provider/provider.dart';
 
 class MessagesPage extends StatefulWidget {
-  const MessagesPage(
+   MessagesPage(
       {Key? key, required this.index, this.pushNotification = false})
       : super(key: key);
 
   final int index;
-  final bool pushNotification;
+  bool pushNotification;
 
   @override
   State<MessagesPage> createState() => _MessagesPageState();
@@ -29,19 +30,30 @@ late FocusNode _focus;
 int indexUpdate = 0;
 bool updateMessage = false;
 late ChatBlocBloc blocDispose;
+late Locally locally; 
 
 class _MessagesPageState extends State<MessagesPage>
-    with TickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    blocDispose= BlocProvider.of<ChatBlocBloc>(context);
+    WidgetsBinding.instance?.addObserver(this);
+    blocDispose = BlocProvider.of<ChatBlocBloc>(context);
     _inputBoxChatController = TextEditingController();
+    locally = Locally(
+        context: context,
+        payload: 'test',
+        pageRoute: MaterialPageRoute(
+            builder: (context) =>
+                MessagesPage(index: 0, pushNotification: true)),
+        appIcon: 'mipmap/ic_launcher',
+      );
     _focus = FocusNode();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance?.removeObserver(this);
     _inputBoxChatController.dispose();
     _focus.dispose();
     blocDispose.dispose();
@@ -49,20 +61,23 @@ class _MessagesPageState extends State<MessagesPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      locally.show(title: "I miss you", message: "Please chat with me :(");
+      setState(() {
+        
+      });
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+
+  @override
   Widget build(BuildContext context) {
     bool pushNotification = widget.pushNotification;
     final bloc = BlocProvider.of<ChatBlocBloc>(context);
     if (pushNotification) {
-      BurbleMessage burble = BurbleMessage(
-          message:
-              "Thank for chating with me, this message is for push notification :)",
-          id: '2',
-          animationController: AnimationController(
-            vsync: this,
-            duration: const Duration(milliseconds: 500),
-          ),
-          readMessage: false,
-          date: DateFormat('hh:mm a').format(DateTime.now()));
+      BurbleMessage burble = _ManualChatBotMessage(
+          "Thank for chating with me, this message is for push notification :)");
       bloc.addNewMessate(burble);
       burble.animationController.forward();
 
@@ -77,6 +92,18 @@ class _MessagesPageState extends State<MessagesPage>
           title: _titleAppBar(context, user),
         ),
         body: _body());
+  }
+
+  BurbleMessage _ManualChatBotMessage(String message) {
+    return BurbleMessage(
+        message: message,
+        id: '2',
+        animationController: AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 500),
+        ),
+        readMessage: false,
+        date: DateFormat('hh:mm a').format(DateTime.now()));
   }
 
   Row _titleAppBar(BuildContext context, User user) {
@@ -161,9 +188,9 @@ class _MessagesPageState extends State<MessagesPage>
       BurbleService provider, int index, List<BurbleMessage> data) {
     return PopupMenuButton(
         tooltip: "Press the message to react",
-          shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15.0),
-              ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
         itemBuilder: (context) => [
               PopupMenuWidget(
                 height: 40.0,
@@ -183,7 +210,7 @@ class _MessagesPageState extends State<MessagesPage>
                         onPressed: () {
                           data[index].icon = FontAwesomeIcons.grinSquintTears;
                           data[index].existIcon = true;
-                           provider.update = true;
+                          provider.update = true;
                           Navigator.pop(context, 'remove');
                         }),
                     IconButton(
@@ -191,7 +218,7 @@ class _MessagesPageState extends State<MessagesPage>
                         onPressed: () {
                           data[index].existIcon = true;
                           data[index].icon = FontAwesomeIcons.surprise;
-                           provider.update = true;
+                          provider.update = true;
                           Navigator.pop(context, 'remove');
                         }),
                     IconButton(
@@ -199,7 +226,7 @@ class _MessagesPageState extends State<MessagesPage>
                         onPressed: () {
                           data[index].existIcon = true;
                           data[index].icon = FontAwesomeIcons.sadTear;
-                           provider.update = true;
+                          provider.update = true;
                           Navigator.pop(context, 'remove');
                         }),
                     IconButton(
@@ -207,7 +234,7 @@ class _MessagesPageState extends State<MessagesPage>
                         onPressed: () {
                           data[index].existIcon = true;
                           data[index].icon = FontAwesomeIcons.angry;
-                           provider.update = true;
+                          provider.update = true;
                           Navigator.pop(context, 'remove');
                         }),
                   ],
